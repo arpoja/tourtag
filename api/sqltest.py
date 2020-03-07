@@ -44,10 +44,10 @@ def select_route_to_from(conn,beg,dest):
     cmds = query.split(';')
     cur = conn.cursor()
     for cmd in cmds:
-        print("\n***\nnow executing")
-        print(cmd)
+        #print("\n***\nnow executing")
+        #print(cmd)
         if cmd.count('?') == 2:
-            print("found 2 params")
+            #print("found 2 params")
             cur.execute(cmd,(beg,dest,))
         else:
             cur.execute(cmd)

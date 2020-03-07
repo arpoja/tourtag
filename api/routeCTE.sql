@@ -3,7 +3,10 @@ DROP TABLE IF EXISTS temp.ttable;
 DROP TABLE IF EXISTS temp.tvars;
 CREATE TEMP TABLE ttable ([Route] TEXT, [PitStops] INT, [TravelTime] TIME);
 CREATE TEMP TABLE tvars (Name TEXT PRIMARY KEY, Val TEXT);
-INSERT OR REPLACE INTO tvars VALUES('Start',?),('Dest',?);
+-- 2 params: starting and destination ports.
+INSERT OR REPLACE INTO tvars VALUES
+     ('Start',?)
+    ,('Dest',?);
 
 -- Form recursive query with CTE
     --Based on code by Vasyl Zvarydchuk: https://stackoverflow.com/a/41694077
@@ -53,6 +56,8 @@ FROM RoutesCTE
 WHERE [From] = (SELECT Val FROM tvars WHERE Name = 'Start') -- Starting port as Name
     AND [To] = (SELECT Val FROM tvars WHERE Name = 'Dest')  -- Destination port as Name
     AND PitStops <= 20; -- make sure recrusion ends 
+
+-- Form JSON from results
 SELECT 
     json_object(
         'from',         (SELECT Val FROM tvars WHERE Name = 'Start'),
