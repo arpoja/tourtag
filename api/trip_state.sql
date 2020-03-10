@@ -1,4 +1,5 @@
 -- THIS SCRIPT SELECTS THE CURRENT STATE FOR THE TRIP
+
 WITH all_stops AS (
     SELECT 
      t.TripId       AS TripId
@@ -12,7 +13,12 @@ WITH all_stops AS (
     ,s.StopCount    AS StopCount
     ,s.ArrivalTime  AS StopArrivalTime
     ,s.DepartureTime    AS StopDepartureTime
-    FROM trips t
+    FROM (
+        SELECT *
+        FROM trips
+        ORDER BY TripId DESC
+        LIMIT 1
+    ) t
     LEFT JOIN tripstops s ON t.TripId = s.TripId
          JOIN ports p ON s.PortId = p.PortId
          JOIN ports bp ON t.BegId = bp.PortId
