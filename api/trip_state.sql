@@ -43,6 +43,4 @@ SELECT
             )
         )
     ) AS json_result
- FROM all_stops
- ORDER BY TripId DESC
- LIMIT 1;
+ FROM all_stops;
