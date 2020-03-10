@@ -23,6 +23,7 @@ WITH all_stops AS (
          JOIN ports p ON s.PortId = p.PortId
          JOIN ports bp ON t.BegId = bp.PortId
          JOIN ports dp ON t.DestId = dp.PortId
+    ORDER BY StopCount DESC
 )
 
 SELECT 
