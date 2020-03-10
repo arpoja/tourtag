@@ -7,15 +7,17 @@ from sqlite3 import Error
 db = '../tourtag.db'
 
 
-### SQL stuffs
+# SQL stuffs
 # split query file to cmds
 def split_query(query_file):
-    fd = open(query_file,'r')
+    fd = open(query_file, 'r')
     query = fd.read()
     fd.close()
     return query.split(';')
 
 # SQL connection
+
+
 def create_conn(db_file):
     conn = None
     try:
@@ -36,17 +38,17 @@ def select_all_from_ports(conn):
 
 
 # GetRouteToFrom
-def select_route_to_from(conn,orig,dest):
+def select_route_to_from(conn, orig, dest):
     # too long query to keep in python code
     ret = "500"
     cur = conn.cursor()
     cmds = split_query('routeCTE.sql')
     for cmd in cmds:
         #print("\n***\nnow executing")
-        #print(cmd)
+        # print(cmd)
         if cmd.count('?') == 2:
             #print("found 2 params")
-            cur.execute(cmd,(orig,dest,))
+            cur.execute(cmd, (orig, dest,))
         else:
             cur.execute(cmd)
         row = cur.fetchone()
@@ -56,10 +58,9 @@ def select_route_to_from(conn,orig,dest):
             ret = row
     return jsonify(ret)
 
-### Trip logics
+# Trip logics
 # new trip from route
-# TODO: include departure time? -> change SQL script too
-def create_new_trip(conn,r):
+def create_new_trip(conn, r):
     print("adding new trip for route: " + r)
     ps = r.split(',')
     cur = conn.cursor()
@@ -70,13 +71,12 @@ def create_new_trip(conn,r):
         print(cmd)
         if cmd.count('?') == 3:
             # params: orig port, dest port, full route comma separated
-            cur.execute(cmd,(ps[0],ps[-1],r,))
+            cur.execute(cmd, (ps[0], ps[-1], r,))
         else:
             cur.execute(cmd)
     return "200"
 
 # depart
-# TODO: include settable departure time? -> change SQL script too
 def update_trip_depart(conn):
     cmds = split_query('update_trip_DEPARTPORT.sql')
     cur = conn.cursor()
@@ -86,7 +86,6 @@ def update_trip_depart(conn):
 
 
 # arrive
-# TODO: include settable "waiting" time? -> change SQL script too
 def update_trip_arrive(conn):
     cmds = split_query('update_trip_ARRIVEPORT.sql')
     cur = conn.cursor()
@@ -95,20 +94,36 @@ def update_trip_arrive(conn):
     return "200"
 
 
-# trip 
-# 
+# trip state as json
 def get_trip_state(conn):
     fd = open('trip_state.sql')
-    cmd = fd.read() # only one command in this file
+    cmd = fd.read()  # only one command in this file
     fd.close()
     cur = conn.cursor()
     cur.execute(cmd)
     return jsonify(cur.fetchone())
 
 
-### API
+# BAD BAD BAD
+def user_login_sql(conn, userName, hashedpw):
+    cmd = "SELECT json_object('Access',UserName) FROM users WHERE UserName = ? AND PWD = ?;"
+    cur = conn.cursor()
+    cur.execute(cmd, (userName, hashedpw,))
+    return jsonify(cur.fetchone())
+
+# departure time setting. time in SQLITE acceptable time() format
+def set_departure_time_sql(conn, time):
+    fd = open('set_departure.sql')
+    cmd = fd.read()
+    fd.close()
+    cur = conn.cursor()
+    cur.execute(cmd,(time,))
+    return "200"
+
+# API
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
+
 
 @app.route('/', methods=['GET'])
 def home():
@@ -128,10 +143,10 @@ def get_ports():
         conn.close()
 
 
-@app.route('/route',methods=['GET','POST'])
+@app.route('/route', methods=['GET', 'POST'])
 def route_to_from():
-    orig = request.args.get('origin',default = None,type = unicode)
-    dest = request.args.get('destination',default = None,type = unicode)
+    orig = request.args.get('origin', default=None, type=unicode)
+    dest = request.args.get('destination', default=None, type=unicode)
     if orig == None or dest == None:
         return "404"
     conn = None
@@ -140,18 +155,18 @@ def route_to_from():
     except Error as e:
         print(e)
     try:
-        return select_route_to_from(conn,orig,dest)
+        return select_route_to_from(conn, orig, dest)
     finally:
         conn.close()
 
 
-@app.route('/trip/new',methods=['GET','POST'])
+@app.route('/trip/new', methods=['GET', 'POST'])
 def add_trip():
     # CSV route 'port1,port2,por3' returned by /route
-    r = request.args.get('route',default = None, type = unicode)
+    r = request.args.get('route', default=None, type=unicode)
     print("rest called, route")
     print(r)
-    if not r: # is this correct way to do this?
+    if not r:  # is this correct way to do this?
         return "500"
     conn = None
     try:
@@ -159,12 +174,12 @@ def add_trip():
     except Error as e:
         print(e)
     try:
-        return create_new_trip(conn,r)
+        return create_new_trip(conn, r)
     finally:
         conn.close()
 
 
-@app.route('/trip/depart',methods=['GET','POST'])
+@app.route('/trip/depart', methods=['GET', 'POST'])
 def trip_depart():
     conn = None
     try:
@@ -177,7 +192,7 @@ def trip_depart():
         conn.close()
 
 
-@app.route('/trip/arrive',methods=['GET','POST'])
+@app.route('/trip/arrive', methods=['GET', 'POST'])
 def trip_arrive():
     conn = None
     try:
@@ -190,8 +205,7 @@ def trip_arrive():
         conn.close()
 
 
-
-@app.route('/trip/state',methods=['GET'])
+@app.route('/trip/state', methods=['GET'])
 def get_trip():
     conn = None
     try:
@@ -202,5 +216,36 @@ def get_trip():
         return get_trip_state(conn)
     finally:
         conn.close()
+
+# BAD BAD BAD
+@app.route('/user/login', methods=['POST'])
+def user_login():
+    userName = request.args.get('user', default=None, type=unicode)
+    hashedPW = request.args.get('hash', default=None, type=unicode)
+
+    conn = None
+    try:
+        conn = sqlite3.connect(db)
+    except Error as e:
+        print(e)
+    try:
+        return user_login_sql(conn, userName, hashedPW)
+    finally:
+        conn.close()
+
+
+@app.route('/trip/departure_in', methods=['GET','POST'])
+def set_departure_time():
+    deptime = request.args.get('time', default='00:00:00', type=str)
+    conn = None
+    try:
+        conn = sqlite3.connect(db)
+    except Error as e:
+        print(e)
+    try:
+        return set_departure_time_sql(conn, deptime)
+    finally:
+        conn.close()
+
 
 app.run(host='0.0.0.0', port=8080)
