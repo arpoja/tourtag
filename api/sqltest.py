@@ -86,7 +86,17 @@ def create_new_trip(conn,route):
         else:
             cur.execute(cmd)
     return "200"
-
+def get_trip_state(conn):
+    #cmds = split_query('trip_state.sql')
+    fd = open('trip_state.sql','r')
+    cmd = fd.read()
+    fd.close()
+    cur = conn.cursor()
+    cur.execute(cmd)
+    rows = cur.fetchall()
+    for row in rows:
+        print(row)
+    
 
 def main():
     database = '/home/jani/tourtag/tourtag.db'
@@ -97,8 +107,10 @@ def main():
         #select_all_from_ports(conn)
         #print("2. Route")
         #select_route_to_from(conn,'Kokkola','Helsinki')
-        print("3: add trip")
-        create_new_trip(conn,'Hamina,Helsinki,Turku')
+        #print("3: add trip")
+        #create_new_trip(conn,'Hamina,Helsinki,Turku')
+        print("trip state")
+        get_trip_state(conn)
     conn.close()    
         #print("2. Port with id 1:")
         #select_port_from_ports(conn,1)

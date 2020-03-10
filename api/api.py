@@ -4,7 +4,7 @@ from flask import request
 import sqlite3
 from sqlite3 import Error
 
-db = '/home/jani/tourtag/tourtag.db'
+db = '../tourtag.db'
 
 
 ### SQL stuffs
@@ -29,7 +29,7 @@ def create_conn(db_file):
 # GetAllPorts
 def select_all_from_ports(conn):
     cur = conn.cursor()
-    cur.execute("SELECT json_group_array(json_object('port',Name)) AS json_result " +
+    cur.execute("SELECT json_object( 'port', json_group_array(Name)) AS json_result " +
                 "FROM (SELECT * FROM ports);")
     ret = cur.fetchall()
     return jsonify(ret[0][0])
@@ -57,7 +57,7 @@ def select_route_to_from(conn,orig,dest):
     return jsonify(ret)
 
 ### Trip logics
-# new trip from route 
+# new trip from route
 # TODO: include departure time? -> change SQL script too
 def create_new_trip(conn,r):
     print("adding new trip for route: " + r)
@@ -95,6 +95,17 @@ def update_trip_arrive(conn):
     return "200"
 
 
+# trip 
+# 
+def get_trip_state(conn):
+    fd = open('trip_state.sql')
+    cmd = fd.read() # only one command in this file
+    fd.close()
+    cur = conn.cursor()
+    cur.execute(cmd)
+    return jsonify(cur.fetchone())
+
+
 ### API
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
@@ -119,10 +130,10 @@ def get_ports():
 
 @app.route('/route',methods=['GET','POST'])
 def route_to_from():
-    orig = request.args.get('origin',default = None,type = str)
-    dest = request.args.get('destination',default = None,type = str)
+    orig = request.args.get('origin',default = None,type = unicode)
+    dest = request.args.get('destination',default = None,type = unicode)
     if orig == None or dest == None:
-        return -1
+        return "404"
     conn = None
     try:
         conn = sqlite3.connect(db)
@@ -137,7 +148,7 @@ def route_to_from():
 @app.route('/trip/new',methods=['GET','POST'])
 def add_trip():
     # CSV route 'port1,port2,por3' returned by /route
-    r = request.args.get('route',default = None, type = str)
+    r = request.args.get('route',default = None, type = unicode)
     print("rest called, route")
     print(r)
     if not r: # is this correct way to do this?
@@ -153,7 +164,7 @@ def add_trip():
         conn.close()
 
 
-@app.route('/trip/depart',methods=['GET','POST'])    
+@app.route('/trip/depart',methods=['GET','POST'])
 def trip_depart():
     conn = None
     try:
@@ -166,7 +177,7 @@ def trip_depart():
         conn.close()
 
 
-@app.route('/trip/arrive',methods=['GET','POST'])    
+@app.route('/trip/arrive',methods=['GET','POST'])
 def trip_arrive():
     conn = None
     try:
@@ -179,7 +190,17 @@ def trip_arrive():
         conn.close()
 
 
-    
 
+@app.route('/trip/state',methods=['GET'])
+def get_trip():
+    conn = None
+    try:
+        conn = sqlite3.connect(db)
+    except Error as e:
+        print(e)
+    try:
+        return get_trip_state(conn)
+    finally:
+        conn.close()
 
 app.run(host='0.0.0.0', port=8080)
