@@ -3,6 +3,7 @@ from flask import jsonify
 from flask import request
 import sqlite3
 from sqlite3 import Error
+import hashlib
 
 db = '../tourtag.db'
 
@@ -70,10 +71,16 @@ def create_new_trip(conn, r):
         print("\n\n*** running cmd:")
         print(cmd)
         if cmd.count('?') == 3:
-            # params: orig port, dest port, full route comma separated
-            cur.execute(cmd, (ps[0], ps[-1], r,))
+            print("found 3 params")
+            print(ps[0])
+            print(ps[-1])
+            print(r)
+            
+            cur.execute(cmd,(ps[0],ps[-1],r,))
+            conn.commit()
         else:
             cur.execute(cmd)
+            conn.commit()
     return "200"
 
 # depart
@@ -106,10 +113,15 @@ def get_trip_state(conn):
 
 # BAD BAD BAD
 def user_login_sql(conn, userName, hashedpw):
-    cmd = "SELECT json_object('Access',UserName) FROM users WHERE UserName = ? AND PWD = ?;"
+    cmd = "SELECT UserName FROM users WHERE UserName = ? AND PWD = ?;"
     cur = conn.cursor()
     cur.execute(cmd, (userName, hashedpw,))
-    return jsonify(cur.fetchone())
+    r = cur.fetchall()
+    if len(r) > 0:
+        if r[0][0] == userName:
+            return "200"
+    else:
+        return "403"
 
 # departure time setting. time in SQLITE acceptable time() format
 def set_departure_time_sql(conn, time):
@@ -145,8 +157,8 @@ def get_ports():
 
 @app.route('/route', methods=['GET', 'POST'])
 def route_to_from():
-    orig = request.args.get('origin', default=None, type=unicode)
-    dest = request.args.get('destination', default=None, type=unicode)
+    orig = request.args.get('origin', default=None, type=str)
+    dest = request.args.get('destination', default=None, type=str)
     if orig == None or dest == None:
         return "404"
     conn = None
@@ -163,7 +175,7 @@ def route_to_from():
 @app.route('/trip/new', methods=['GET', 'POST'])
 def add_trip():
     # CSV route 'port1,port2,por3' returned by /route
-    r = request.args.get('route', default=None, type=unicode)
+    r = request.args.get('route', default=None, type=str)
     #print("rest called, route")
     #print(r)
     if not r:  # is this correct way to do this?
@@ -218,18 +230,20 @@ def get_trip():
         conn.close()
 
 # BAD BAD BAD
-@app.route('/user/login', methods=['POST'])
+@app.route('/user/login', methods=['GET','POST'])
 def user_login():
-    userName = request.args.get('user', default=None, type=unicode)
-    hashedPW = request.args.get('hash', default=None, type=unicode)
-
+    username = request.args.get('user', default=None, type=str)
+    password = request.args.get('pw', default=None, type=str)
+    if username is None or  password is None:
+        return "403"
+    hashedpw = hashlib.sha256(password).hexdigest()
     conn = None
     try:
         conn = sqlite3.connect(db)
     except Error as e:
         print(e)
     try:
-        return user_login_sql(conn, userName, hashedPW)
+        return user_login_sql(conn, username, hashedpw)
     finally:
         conn.close()
 
