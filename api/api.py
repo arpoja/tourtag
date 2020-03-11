@@ -236,7 +236,7 @@ def user_login():
     password = request.args.get('pw', default=None, type=str)
     if username is None or  password is None:
         return "403"
-    hashedpw = hashlib.sha256(password).hexdigest()
+    hashedpw = hashlib.sha256(password.encode(encoding='utf-8')).hexdigest()
     conn = None
     try:
         conn = sqlite3.connect(db)
