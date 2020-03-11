@@ -6,9 +6,9 @@ CREATE TEMP TABLE tvars (Name TEXT PRIMARY KEY, Val TEXT);
 --  destination port NAME, 
 --  route inbetween ports in form 'port,port2,port3', obtained from routeCTE.sql
 INSERT OR REPLACE INTO tvars VALUES
-     ('Start',?)
-    ,('Dest',?)
-    ,('Route',?);
+     ('Start',?)--PARAM_STARTING_PORT
+    ,('Dest',?)--PARAM_DESTINATION_PORT
+    ,('Route',?);--PARAM_ROUTE
 INSERT INTO trips VALUES(
      (SELECT PortId FROM ports WHERE Name = (   -- Port Id where trip starts from
         SELECT Val FROM tvars WHERE Name = 'Start'))  
@@ -29,5 +29,4 @@ INSERT INTO tripstops VALUES(
     ,'ARRIVED'
     ,0
 );
-
 DROP TABLE IF EXISTS temp.tvars;
