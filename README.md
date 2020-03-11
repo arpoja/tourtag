@@ -1,7 +1,7 @@
 # tourtag
 ESD miniproject stuff
 Running:
-1. run ./api/api.py in python 2, python3 seems to break something on create_new_trip with rest call...
+1. run ./api/api.py in python 3.
 
 **Update (running from base dir doesn't work anymore)**
 ```
