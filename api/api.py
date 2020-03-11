@@ -61,7 +61,7 @@ def select_route_to_from(conn, orig, dest):
 # Trip logics
 # new trip from route
 def create_new_trip(conn, r):
-    print("adding new trip for route: " + r)
+    #print("adding new trip for route: " + r)
     ps = r.split(',')
     cur = conn.cursor()
     cmds = split_query('add_trip.sql')
@@ -164,8 +164,8 @@ def route_to_from():
 def add_trip():
     # CSV route 'port1,port2,por3' returned by /route
     r = request.args.get('route', default=None, type=unicode)
-    print("rest called, route")
-    print(r)
+    #print("rest called, route")
+    #print(r)
     if not r:  # is this correct way to do this?
         return "500"
     conn = None
