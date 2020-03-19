@@ -245,6 +245,7 @@ try:
             #print(r['status'])
             if r['status'] == 'FINISHED':
                 new_text = 'FINISHED'
+                new_time = '00:00'
             else:
                 dnow = datetime.datetime.now() - datetime.timedelta(hours=2)
                 s = r['stops'][0]
